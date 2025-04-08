@@ -1,0 +1,29 @@
+import hashlib
+import os
+
+def generate_trap_key(data: bytes) -> bytes:
+    return hashlib.sha256(data + os.urandom(16)).digest()
+
+def insert_trap_key(data: bytes, trap_key: bytes) -> bytes:
+    insert_at = len(data) // 2
+    return data[:insert_at] + trap_key + data[insert_at:]
+
+def e6_anti_forensics(data: bytes) -> (bytes, bytes):
+    trap_key = generate_trap_key(data)
+    return insert_trap_key(data, trap_key), trap_key
+import base64
+
+def split_key_dual_path(main_key: bytes) -> (str, str):
+    half = len(main_key) // 2
+    part1 = base64.b64encode(main_key[:half]).decode()
+    part2 = base64.b64encode(main_key[half:]).decode()
+    return part1, part2
+
+def embed_decoy(data: bytes, decoy_text: str = "This is a decoy message.") -> bytes:
+    decoy = decoy_text.encode()
+    return data + b"::" + decoy
+
+def e7_recovery_layer(data: bytes, master_key: bytes) -> (bytes, str, str):
+    part1, part2 = split_key_dual_path(master_key)
+    payload = embed_decoy(data)
+    return payload, part1, part2
